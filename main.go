@@ -89,8 +89,8 @@ func doAPITests(client *http.Client, inputData []byte, count int) {
 		t := time.Now()
 		result := callLocalOpa(client, inputData)
 		d := time.Since(t)
-		if d/time.Millisecond > 3 {
-			logger.Printf("Time > 3 ms %v\n", d)
+		if d/time.Millisecond > 5 {
+			logger.Printf("Time > 5 ms %v\n", d)
 			logger.Printf("OPA Reply  %+v\n", getPretty(marshalToBytes(result["metrics"])))
 		}
 	}

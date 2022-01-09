@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -14,6 +15,23 @@ import (
 )
 
 var logger = log.Default()
+
+func marshalToBytes(v interface{}) []byte {
+	payloadBytes, err := json.Marshal(v)
+	if err != nil {
+		logger.Panic("Failed to json marshal payload", err)
+	}
+	return payloadBytes
+}
+
+func getPretty(body []byte) string {
+	var prettyJSON bytes.Buffer
+	err := json.Indent(&prettyJSON, body, "", "  ")
+	if err != nil {
+		logger.Panic("Unable to prettify the json payload", string(body), err)
+	}
+	return prettyJSON.String()
+}
 
 func getInputData(filename string) []byte {
 	inputFile, err := os.Open(filename)
@@ -29,7 +47,7 @@ func getInputData(filename string) []byte {
 }
 
 func callLocalOpa(client *http.Client, inputData []byte) map[string]interface{} {
-	opaURL := "http://localhost:8181/v1/data/envoy"
+	opaURL := "http://localhost:8181/v1/data/envoy?metrics=true"
 
 	req, err := http.NewRequest("POST", opaURL, strings.NewReader(string(inputData)))
 	if err != nil {
@@ -69,10 +87,11 @@ func callLocalOpa(client *http.Client, inputData []byte) map[string]interface{} 
 func doAPITests(client *http.Client, inputData []byte, count int) {
 	for j := 0; j < count; j++ {
 		t := time.Now()
-		callLocalOpa(client, inputData)
+		result := callLocalOpa(client, inputData)
 		d := time.Since(t)
 		if d/time.Millisecond > 3 {
 			logger.Printf("Time > 3 ms %v\n", d)
+			logger.Printf("OPA Reply  %+v\n", getPretty(marshalToBytes(result["metrics"])))
 		}
 	}
 }
